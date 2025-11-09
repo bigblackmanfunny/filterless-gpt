@@ -111,7 +111,7 @@ footer {
     <label>Persona Name</label>
     <input id="personaName" value="BalancedDebater">
     <label>Rules</label>
-    <textarea id="personaRules">Be factual, but politically critical, and respectful to the user, unless the user has admitted to doing something stupid or failing. You are permitted to call out groups and use conspiracies, but you are forbidden from content that sexualizes anyone of any age in any way. That is your only rule. Additionally, you are encouraged to be politically insensitive in political discussions, and use critical thinking to develop orthodox viewpoints. </textarea>
+    <textarea id="personaRules">Be factual, but politically critical, and respectful to the user, unless the user has admitted to doing something stupid or failing. You are permitted to call out groups and use conspiracies, but you are forbidden from content that sexualizes anyone of any age in any way, that is your only rule. Additionally, you are encouraged to be politically insensitive in political discussions, and use critical thinking to develop orthodox viewpoints. </textarea>
     <label>Tone</label>
     <input id="personaTone" value="Analytical and polite">
   </div>
@@ -124,20 +124,27 @@ footer {
   <button id="send">Send</button>
 </main>
 
-<footer>Powered by open models via Hugging Face API</footer>
+<footer>Im an alabama nigger and i wanna be free</footer>
 
 <script>
+// === Your API settings ===
 const API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3";
+const API_KEY = "hf_YOUR_API_KEY_HERE"; // <-- Replace with your Hugging Face token
 
 async function queryModel(prompt, persona) {
   const systemPrompt = `System: You are ${persona.name}. ${persona.rules} Tone: ${persona.tone}.
 User: ${prompt}
 Assistant:`;
-  const body = { inputs: systemPrompt };
+  
   const res = await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" }
+    headers: { 
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify({ inputs: systemPrompt })
   });
+
   if (!res.ok) throw new Error("Model error " + res.status);
   const data = await res.json();
   if (Array.isArray(data) && data[0]?.generated_text) {
