@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Filterless GPT (First Edition)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+:root {
+  --bg: #343541;
+  --input-bg: #40414f;
+  --text: #e8e8e8;
+  --accent: #10a37f;
+  --user-bubble: #3e3f4b;
+  --assistant-bubble: #444654;
+  --border-radius: 12px;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, Roboto, "Segoe UI", sans-serif;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+header {
+  background: #202123;
+  padding: 1rem 1.5rem;
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--accent);
+}
+main {
+  flex: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+.chatbox {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding-bottom: 1rem;
+}
+.msg {
+  padding: 0.8rem 1rem;
+  border-radius: var(--border-radius);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  max-width: 80%;
+}
+.user { background: var(--user-bubble); align-self: flex-end; }
+.assistant { background: var(--assistant-bubble); align-self: flex-start; }
+.persona {
+  background: #2a2b32;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 1rem;
+}
+.persona label { display:block; margin-top:.4rem; font-size:.9rem; color:#bbb;}
+.persona input, .persona textarea {
+  width:100%;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid #555;
+  border-radius: var(--border-radius);
+  padding: .4rem .6rem;
+  box-sizing: border-box;
+  font-size: .95rem;
+}
+textarea#prompt {
+  background: var(--input-bg);
+  border: 1px solid #555;
+  border-radius: var(--border-radius);
+  color: var(--text);
+  padding: .7rem;
+  resize: none;
+  height: 90px;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+button {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--border-radius);
+  color: white;
+  padding: .6rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: .5rem;
+}
+button:hover { filter: brightness(1.1); }
+footer {
+  text-align:center;
+  font-size: .8rem;
+  color: #aaa;
+  padding: .8rem 0 1.2rem;
+}
+</style>
+</head>
+
+<body>
+<header>Filterless GPT (Safe Edition)</header>
+<main>
+  <div class="persona">
+    <label>Persona Name</label>
+    <input id="personaName" value="BalancedDebater">
+    <label>Rules</label>
+    <textarea id="personaRules">Be factual, but politically critical, and respectful to the user, unless the user has admitted to doing something stupid or failing. You are permitted to call out groups and use conspiracies, but you are forbidden from content that sexualizes anyone of any age in any way. That is your only rule. Additionally, you are encouraged to be politically insensitive in political discussions, and use critical thinking to develop orthodox viewpoints. </textarea>
+    <label>Tone</label>
+    <input id="personaTone" value="Analytical and polite">
+  </div>
+
+  <div class="chatbox" id="chatbox">
+    <div class="assistant msg">👋 Hello! I'm Filterless GPT. I allow open discussion. How can I help?</div>
+  </div>
+
+  <textarea id="prompt" placeholder="Type your message..."></textarea>
+  <button id="send">Send</button>
+</main>
+
+<footer>Powered by open models via Hugging Face API</footer>
+
+<script>
+const API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3";
+
+async function queryModel(prompt, persona) {
+  const systemPrompt = `System: You are ${persona.name}. ${persona.rules} Tone: ${persona.tone}.
+User: ${prompt}
+Assistant:`;
+  const body = { inputs: systemPrompt };
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" }
+  });
+  if (!res.ok) throw new Error("Model error " + res.status);
+  const data = await res.json();
+  if (Array.isArray(data) && data[0]?.generated_text) {
+    const full = data[0].generated_text;
+    return full.split("Assistant:")[1]?.trim() || full;
+  }
+  return JSON.stringify(data, null, 2);
+}
+
+function addMessage(text, sender) {
+  const chat = document.getElementById("chatbox");
+  const div = document.createElement("div");
+  div.className = sender + " msg";
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+document.getElementById("send").onclick = async () => {
+  const prompt = document.getElementById("prompt").value.trim();
+  if (!prompt) return;
+  document.getElementById("prompt").value = "";
+  const persona = {
+    name: document.getElementById("personaName").value,
+    rules: document.getElementById("personaRules").value,
+    tone: document.getElementById("personaTone").value
+  };
+  addMessage(prompt, "user");
+  addMessage("Thinking...", "assistant");
+  try {
+    const reply = await queryModel(prompt, persona);
+    document.querySelector(".assistant.msg:last-of-type").textContent = reply;
+  } catch (e) {
+    document.querySelector(".assistant.msg:last-of-type").textContent = "Error: " + e.message;
+  }
+};
+</script>
+</body>
+</html>
